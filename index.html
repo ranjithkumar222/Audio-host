@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host</title>
+</head>
+<body>
+    <h1>Host</h1>
+    <button id="start">Start Broadcasting</button>
+    <button id="stop">Stop Broadcasting</button>
+    <h3>Status: <span id="status">Idle</span></h3>
+    <h3>Connected Client:</h3>
+    <div id="clientInfo"></div>
+    <h3>Chat</h3>
+    <div id="chatBox" style="border: 1px solid #ccc; padding: 10px; max-height: 200px; overflow-y: auto;"></div>
+    <input type="text" id="message" placeholder="Type a message...">
+    <button id="send">Send</button>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8080");
+        let stream;
+
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === "client-info") {
+                document.getElementById("clientInfo").innerText = `Name: ${data.name}, Battery: ${data.battery}%`;
+            } else if (data.type === "chat") {
+                const chatBox = document.getElementById("chatBox");
+                chatBox.innerHTML += `<p><strong>${data.sender}:</strong> ${data.message}</p>`;
+            }
+        };
+
+        document.getElementById("start").onclick = async () => {
+            document.getElementById("status").innerText = "Broadcasting...";
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        };
+
+        document.getElementById("stop").onclick = () => {
+            document.getElementById("status").innerText = "Idle";
+            if (stream) stream.getTracks().forEach((track) => track.stop());
+        };
+
+        document.getElementById("send").onclick = () => {
+            const msg = document.getElementById("message").value;
+            ws.send(JSON.stringify({ type: "chat", sender: "Host", message: msg }));
+        };
+    </script>
+</body>
+</html>
